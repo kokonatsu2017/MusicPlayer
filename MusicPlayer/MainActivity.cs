@@ -1,13 +1,15 @@
 ﻿using Android.App;
 using Android.Widget;
 using Android.OS;
+using Android.Media;
+using System.Collections.Generic;
 
 namespace MusicPlayer
 {
     [Activity(Label = "MusicPlayer", MainLauncher = true, Icon = "@mipmap/icon")]
     public class MainActivity : Activity
     {
-        int count = 1;
+        MediaPlayer player = null;
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -18,10 +20,43 @@ namespace MusicPlayer
 
             // Get our button from the layout resource,
             // and attach an event to it
-            Button button = FindViewById<Button>(Resource.Id.myButton);
+            List<string> tracks = new List<string>();
 
-            button.Click += delegate { button.Text = string.Format("{0} clicks!", count++); };
+            var fields = typeof(Resource.Raw).GetFields();
+       
+            foreach(var file in fields)
+            {
+                tracks.Add(file.Name);
+            }
+
+            var listView = FindViewById<ListView>(Resource.Id.listView1);
+
+            var adapter = new ArrayAdapter(this, Android.Resource.Layout.SimpleListItem1, tracks);
+
+            listView.Adapter = adapter;
+
+            listView.ItemClick += (sender, e) =>
+            {
+                var item = tracks[e.Position];
+                PlaySong(item);
+            };
         }
+
+        public void PlaySong(string name)
+        {
+            var resId = Resources.GetIdentifier(name, "raw", PackageName);
+
+            if (player != null && player.IsPlaying)
+                player.Stop();
+
+            player = MediaPlayer.Create(this, resId);
+            player.Completion += delegate
+            {
+                player = null; //Free the memory
+            };
+            player.Start();
+        }
+
     }
 }
 
